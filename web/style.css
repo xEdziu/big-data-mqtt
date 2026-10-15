@@ -1,0 +1,121 @@
+:root {
+  --bg: #12151b;
+  --panel: #1a1f27;
+  --line: #2b323d;
+  --text: #dfe5ee;
+  --muted: #8a94a3;
+  --online: #3fb950;
+  --silent: #f0883e;
+  --backfill: #58a6ff;
+  --alarm: #f85149;
+  --rock: #232933;
+  --tunnel: #4a5363;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 system-ui, "Segoe UI", sans-serif;
+}
+
+#map { height: 100vh; background: var(--rock); }
+
+#side {
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+h1 { font-size: 18px; margin: 0 0 8px; }
+h1 span { color: var(--muted); font-weight: 400; font-size: 14px; display: block; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+
+.conn { font-size: 12px; padding: 2px 8px; border-radius: 10px; display: inline-block; }
+.conn.on { background: #1f3a26; color: var(--online); }
+.conn.off { background: #3d1f1f; color: var(--alarm); }
+
+#counters { margin: 8px 0; color: var(--muted); font-size: 13px; }
+
+.legend { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.dot.online { background: var(--online); }
+.dot.silent { background: var(--silent); }
+.dot.backfill { background: var(--backfill); }
+.dot.alarm { background: var(--panel); border: 2px solid var(--alarm); }
+
+#details { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+#details dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0 0 12px; font-size: 13px; }
+#details dt { color: var(--muted); }
+#details dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.actions .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+.actions label { color: var(--muted); font-size: 13px; }
+.actions input { width: 64px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 4px; }
+
+button {
+  background: #3a2326;
+  color: #ffd7d5;
+  border: 1px solid #6e2f31;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+button:hover { filter: brightness(1.25); }
+button:focus-visible { outline: 2px solid var(--backfill); outline-offset: 2px; }
+button.ok { background: #1f3a26; color: #c8f0d0; border-color: #2f6e3c; }
+
+.group h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 4px; }
+.dev {
+  display: grid;
+  grid-template-columns: 16px 64px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.dev:hover { background: var(--bg); filter: none; }
+.dev.selected { border-color: var(--backfill); background: var(--bg); }
+.dev .metric { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dev .age { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dev.alarm .dot { box-shadow: 0 0 0 2px var(--alarm); }
+
+#log { list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--muted); max-height: 220px; overflow-y: auto; }
+#log li { padding: 2px 0; border-bottom: 1px solid var(--line); }
+#log time { color: var(--text); margin-right: 6px; font-variant-numeric: tabular-nums; }
+
+.leaflet-container { background: var(--rock); font: inherit; }
+.leaflet-tooltip.dev-label {
+  background: rgba(18, 21, 27, .85);
+  color: var(--text);
+  border: none;
+  box-shadow: none;
+  font-size: 11px;
+  padding: 0 4px;
+}
+.leaflet-tooltip.dev-label::before { display: none; }
+.leaflet-tooltip.zone-label { background: transparent; border: none; box-shadow: none; color: #ff9b95; font-size: 11px; }
+.leaflet-tooltip.zone-label::before { display: none; }
+
+@media (max-width: 800px) {
+  body { grid-template-columns: 1fr; grid-template-rows: 55vh auto; height: auto; }
+  #map { height: 55vh; }
+  #side { height: auto; border-left: none; }
+}

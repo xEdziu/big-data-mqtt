@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dyspozytornia kopalni</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="map" aria-label="Schemat poziomu kopalni"></main>
+
+  <aside id="side">
+    <header>
+      <h1>Dyspozytornia <span id="mine-name"></span></h1>
+      <div id="conn" class="conn off">broker: rozłączono</div>
+      <div id="counters"></div>
+      <ul class="legend">
+        <li><i class="dot online"></i>online</li>
+        <li><i class="dot silent"></i>brak danych (buforuje)</li>
+        <li><i class="dot backfill"></i>dosyła zaległe</li>
+        <li><i class="dot alarm"></i>alarm</li>
+      </ul>
+    </header>
+
+    <section id="details" hidden>
+      <h2 id="d-title"></h2>
+      <dl id="d-fields"></dl>
+      <div class="actions">
+        <div class="row">
+          <button data-action="link_loss">Utrata łączności</button>
+          <label>na <input id="d-seconds" type="number" min="1" max="600" value="60"> s</label>
+        </div>
+        <div class="row">
+          <button data-action="overheat">Przegrzanie</button>
+          <button data-action="ch4_leak">Wyciek CH4</button>
+          <button data-action="stop">Zatrzymaj</button>
+          <button data-action="reset" class="ok">Reset</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="list"></section>
+
+    <section id="log-wrap">
+      <h2>Zdarzenia</h2>
+      <ol id="log"></ol>
+    </section>
+  </aside>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/mqtt@5.16.1/dist/mqtt.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
