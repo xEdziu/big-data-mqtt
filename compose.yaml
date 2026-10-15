@@ -68,6 +68,18 @@ services:
       - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
 
+  # Jednorazowo zakłada konta użytkowników w Grafanie i kończy działanie
+  grafana-users:
+    image: curlimages/curl:8.23.0
+    restart: "no"
+    depends_on: [grafana]
+    environment:
+      GRAFANA_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GRAFANA_USERS_DEFAULT_PASSWORD: ${GRAFANA_USERS_DEFAULT_PASSWORD}
+    volumes:
+      - ./config/grafana/create-users.sh:/create-users.sh:ro
+    entrypoint: ["sh", "/create-users.sh"]
+
   dispatcher:
     image: nginx:1.30.6-alpine-slim
     restart: unless-stopped
