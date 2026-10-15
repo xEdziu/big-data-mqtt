@@ -48,6 +48,25 @@ services:
     volumes:
       - ./config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
 
+  grafana:
+    image: grafana/grafana:13.2.4
+    restart: unless-stopped
+    depends_on: [influxdb]
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/mine.json
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+      INFLUX_ORG: ${INFLUX_ORG}
+      INFLUX_BUCKET: ${INFLUX_BUCKET}
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
   sim-haul-truck:
     <<: *sim
     environment: {<<: *sim-env, MACHINE_TYPE: haul_truck, DEVICES: "8"}
@@ -80,6 +99,7 @@ volumes:
   mosquitto-data:
   influxdb-data:
   influxdb-config:
+  grafana-data:
   buffers-haul-truck:
   buffers-lhd-loader:
   buffers-drill-rig:
