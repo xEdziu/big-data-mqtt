@@ -1,0 +1,86 @@
+name: kopalnia-iot
+
+x-sim: &sim
+  build: ./simulator
+  image: kopalnia-edge-sim
+  restart: unless-stopped
+  depends_on: [mosquitto, telegraf]
+  environment: &sim-env
+    MQTT_HOST: mosquitto
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.22
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+
+  influxdb:
+    image: influxdb:2.9.1
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_ADMIN_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_RETENTION: 7d
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+      - ./config/influxdb/init:/docker-entrypoint-initdb.d:ro
+      - ./config/influxdb/tasks:/etc/influxdb-tasks:ro
+
+  telegraf:
+    image: telegraf:1.40.2
+    restart: unless-stopped
+    depends_on: [mosquitto, influxdb]
+    environment:
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+      INFLUX_ORG: ${INFLUX_ORG}
+      INFLUX_BUCKET: ${INFLUX_BUCKET}
+    volumes:
+      - ./config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+
+  sim-haul-truck:
+    <<: *sim
+    environment: {<<: *sim-env, MACHINE_TYPE: haul_truck, DEVICES: "8"}
+    volumes:
+      - ./config/mine_layout.json:/app/mine_layout.json:ro
+      - buffers-haul-truck:/data
+
+  sim-lhd-loader:
+    <<: *sim
+    environment: {<<: *sim-env, MACHINE_TYPE: lhd_loader, DEVICES: "5"}
+    volumes:
+      - ./config/mine_layout.json:/app/mine_layout.json:ro
+      - buffers-lhd-loader:/data
+
+  sim-drill-rig:
+    <<: *sim
+    environment: {<<: *sim-env, MACHINE_TYPE: drill_rig, DEVICES: "4"}
+    volumes:
+      - ./config/mine_layout.json:/app/mine_layout.json:ro
+      - buffers-drill-rig:/data
+
+  sim-vent-fan:
+    <<: *sim
+    environment: {<<: *sim-env, MACHINE_TYPE: vent_fan, DEVICES: "4"}
+    volumes:
+      - ./config/mine_layout.json:/app/mine_layout.json:ro
+      - buffers-vent-fan:/data
+
+volumes:
+  mosquitto-data:
+  influxdb-data:
+  influxdb-config:
+  buffers-haul-truck:
+  buffers-lhd-loader:
+  buffers-drill-rig:
+  buffers-vent-fan:
