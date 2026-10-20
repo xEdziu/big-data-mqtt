@@ -1,4 +1,4 @@
-"""Urządzenie brzegowe: pomiar -> outbox (SQLite) -> MQTT, usunięcie dopiero po PUBACK."""
+"""Urządzenie brzegowe (ESP32): pomiar -> outbox we flashu -> MQTT, zwolnienie slotu dopiero po PUBACK."""
 
 import json
 import logging
@@ -9,6 +9,7 @@ import time
 from .buffer import Outbox
 from .layout import MineLayout, Point, Route
 from .profiles import Faults, Machine
+from .record import RecordCodec
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class Device:
         self.machine = machine
         self.layout = layout
         self.outbox = outbox
+        self.codec = RecordCodec(machine.record_fields())
         self.client = client
         self.rng = rng
         self.topic = f"mine/{machine.machine_type}/{device_id}/telemetry"
@@ -120,22 +122,27 @@ class Device:
         link = self._link_state(mono)
         if link != self.link:
             if link == "online":
-                log.info("[LINK] %s odzyskano zasięg, w buforze %d rekordów", self.device_id, self.outbox.count())
+                log.info(
+                    "[LINK] %s odzyskano zasięg, w buforze %d rekordów (utraconych łącznie: %d)",
+                    self.device_id, self.outbox.count(), self.outbox.dropped,
+                )
             else:
-                log.info("[LINK] %s utrata zasięgu (%s), buforuję w SQLite", self.device_id, link)
+                log.info("[LINK] %s utrata zasięgu (%s), buforuję we flashu", self.device_id, link)
         self.link = link
 
         record = {
-            "device_id": self.device_id,
             "ts": int(wall * 1000),
             "link": link,
             "faults": self.faults.describe(),
             "x": round(self.position[0], 1),
             "y": round(self.position[1], 1),
             **fields,
-            "buffer_size": self.outbox.count() + 1,
+            "buffer_size": min(self.outbox.count() + 1, self.outbox.capacity),
         }
-        self.outbox.append(json.dumps(record))
+        was_full = self.outbox.count() == self.outbox.capacity
+        self.outbox.append(self.codec.encode(record))
+        if not was_full and self.outbox.count() == self.outbox.capacity:
+            log.warning("[BUFFER] %s bufor pełny (%d), nadpisuję najstarsze rekordy", self.device_id, self.outbox.capacity)
 
     def flush(self, deadline: float) -> int:
         """Wyślij zaległe rekordy (FIFO) i usuń tylko te potwierdzone przez broker."""
@@ -148,25 +155,26 @@ class Device:
             if not rows:
                 break
             pending = []
-            for row_id, payload in rows:
-                record = json.loads(payload)
+            for seq, payload in rows:
+                record = {"device_id": self.device_id, **self.codec.decode(payload), "seq": seq}
                 now_ms = int(time.time() * 1000)
                 record["sent_at"] = now_ms
                 record["delay_ms"] = now_ms - record["ts"]
                 record["buffered"] = int(record["delay_ms"] > live_ms)
-                pending.append((row_id, self.client.publish(self.topic, json.dumps(record), qos=1)))
-            acked = []
+                record["dropped"] = self.outbox.dropped
+                pending.append((seq, self.client.publish(self.topic, json.dumps(record), qos=1)))
+            acked = 0
             try:
-                for row_id, info in pending:
+                for seq, info in pending:
                     info.wait_for_publish(timeout=PUBACK_TIMEOUT_S)
                     if not info.is_published():
                         break
-                    acked.append(row_id)
+                    self.outbox.ack_through(seq)
+                    acked += 1
             except (RuntimeError, ValueError) as exc:
                 log.warning("[FORWARD] %s przerwano wysyłkę: %s", self.device_id, exc)
-            self.outbox.delete(acked)
-            sent += len(acked)
-            if len(acked) < len(pending):
+            sent += acked
+            if acked < len(pending):
                 break
         if sent > 1:
             log.info("[FORWARD] %s wysłano %d zaległych rekordów", self.device_id, sent)

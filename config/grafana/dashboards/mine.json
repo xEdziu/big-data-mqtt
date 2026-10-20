@@ -750,7 +750,7 @@
         "kind": "Panel",
         "spec": {
           "id": 6,
-          "title": "Rozmiar bufora edge (SQLite) w chwili pomiaru",
+          "title": "Rozmiar bufora edge (flash ESP32) w chwili pomiaru",
           "description": "Dyspozytor widzi to dopiero po dosłaniu danych - w trakcie utraty zasięgu urządzenie milczy.",
           "links": [],
           "data": {
@@ -1203,6 +1203,88 @@
             }
           }
         }
+      },
+      "panel-12": {
+        "kind": "Panel",
+        "spec": {
+          "id": 12,
+          "title": "Utracone pomiary (24 h)",
+          "description": "Pomiary nadpisane w pełnym buforze flash ESP32 (drop-oldest). Przyrost licznika dropped w 24 h, suma po urządzeniach.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "influxdb",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "influxdb"
+                      },
+                      "spec": {
+                        "query": "from(bucket: \"telemetry\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._field == \"dropped\")\n  |> group(columns: [\"device_id\"])\n  |> spread()\n  |> group()\n  |> sum()"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.4",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 1,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
       }
     },
     "layout": {
@@ -1214,7 +1296,7 @@
             "spec": {
               "x": 0,
               "y": 0,
-              "width": 6,
+              "width": 5,
               "height": 4,
               "element": {
                 "kind": "ElementReference",
@@ -1225,9 +1307,9 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 6,
+              "x": 5,
               "y": 0,
-              "width": 6,
+              "width": 5,
               "height": 4,
               "element": {
                 "kind": "ElementReference",
@@ -1238,9 +1320,9 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 12,
+              "x": 10,
               "y": 0,
-              "width": 6,
+              "width": 5,
               "height": 4,
               "element": {
                 "kind": "ElementReference",
@@ -1251,13 +1333,26 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 18,
+              "x": 15,
               "y": 0,
-              "width": 6,
+              "width": 5,
               "height": 4,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-4"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 20,
+              "y": 0,
+              "width": 4,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-12"
               }
             }
           },

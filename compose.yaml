@@ -7,6 +7,7 @@ x-sim: &sim
   depends_on: [mosquitto, telegraf]
   environment: &sim-env
     MQTT_HOST: mosquitto
+    BUFFER_RECORDS:  # pojemność bufora flash w rekordach; brak = 24576 (partycja 1,5 MB)
 
 services:
   mosquitto:

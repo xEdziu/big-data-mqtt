@@ -1,4 +1,4 @@
-"""Uruchamia N urządzeń jednego typu, każde w osobnym wątku z własnym klientem MQTT i buforem."""
+"""Uruchamia N urządzeń ESP32 jednego typu, każde w osobnym wątku z własnym klientem MQTT i buforem."""
 
 import argparse
 import logging
@@ -28,6 +28,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--port", type=int, default=int(env("MQTT_PORT", "1883")))
     p.add_argument("--layout", type=Path, default=Path(env("LAYOUT", DEFAULT_LAYOUT)))
     p.add_argument("--buffer-dir", type=Path, default=Path(env("BUFFER_DIR", "buffers")))
+    # 24576 slotów x 64 B = partycja 1,5 MB na 4 MB flashu ESP32
+    p.add_argument("--buffer-records", type=int, default=int(env("BUFFER_RECORDS", "24576")))
     return p.parse_args()
 
 
@@ -54,7 +56,7 @@ def main() -> None:
         client.reconnect_delay_set(min_delay=1, max_delay=10)
         device = Device(
             device_id, machine_cls(rng), layout, place,
-            Outbox(args.buffer_dir / f"{device_id}.db"), client, rng,
+            Outbox(args.buffer_dir / f"{device_id}.ring", args.buffer_records), client, rng,
         )
         client.connect_async(args.broker, args.port, keepalive=15)
         client.loop_start()

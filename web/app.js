@@ -46,6 +46,8 @@ const FIELD_LABEL = {
   buffer_size: "bufor edge",
   delay_ms: "opóźnienie [ms]",
   buffered: "z bufora",
+  seq: "nr pomiaru (seq)",
+  dropped: "utracone (pełny bufor)",
 };
 
 const devices = new Map();

@@ -48,10 +48,10 @@ LAYOUT = MineLayout(
 
 @pytest.fixture
 def make_device(tmp_path):
-    def make(place=(0.0, 0.0), machine_cls=VentFan):
+    def make(place=(0.0, 0.0), machine_cls=VentFan, capacity=100):
         rng = random.Random(1)
         client = FakeClient()
-        dev = Device("D-01", machine_cls(rng), LAYOUT, place, Outbox(tmp_path / "d.db"), client, rng)
+        dev = Device("D-01", machine_cls(rng), LAYOUT, place, Outbox(tmp_path / "d.ring", capacity), client, rng)
         return dev, client
 
     return make
@@ -86,6 +86,21 @@ def test_manual_link_loss_buffers_then_forwards_in_order(make_device):
     assert ts == sorted(ts)
     assert [m["buffered"] for m in client.published] == [1] * 5 + [0]
     assert [m["link"] for m in client.published] == ["manual"] * 5 + ["online"]
+
+
+def test_overflow_during_link_loss_drops_oldest(make_device):
+    dev, client = make_device(capacity=3)
+    dev.apply_command("link_loss", {"seconds": 60})
+    t0 = time.time()
+    for i in range(5):
+        dev.tick(t0 - 100 + i, time.monotonic(), 1.0)
+    dev.apply_command("reset", {})
+    dev.tick(t0, time.monotonic(), 1.0)
+    assert dev.flush(far_deadline()) == 3
+    assert [m["seq"] for m in client.published] == [3, 4, 5]
+    assert all(m["dropped"] == 3 for m in client.published)
+    assert [m["link"] for m in client.published] == ["manual", "manual", "online"]
+    assert client.published[0]["device_id"] == "D-01"
 
 
 def test_missing_puback_keeps_records(make_device):

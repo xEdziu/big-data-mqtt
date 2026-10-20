@@ -1,7 +1,7 @@
 [project]
 name = "edge-sim"
 version = "0.1.0"
-description = "Symulator urządzeń brzegowych (maszyny górnicze) z buforem store-and-forward"
+description = "Symulator urządzeń brzegowych ESP32 (maszyny górnicze) z buforem store-and-forward we flashu"
 requires-python = ">=3.12"
 dependencies = ["paho-mqtt==2.1.0"]
 

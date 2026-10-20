@@ -5,6 +5,9 @@ import random
 from dataclasses import dataclass
 
 
+FAULT_NAMES = ("overheat", "ch4_leak", "stopped")
+
+
 @dataclass
 class Faults:
     """Awarie wywoływane ręcznie z panelu dyspozytora."""
@@ -14,7 +17,7 @@ class Faults:
     stopped: bool = False
 
     def describe(self) -> str:
-        names = [n for n in ("overheat", "ch4_leak", "stopped") if getattr(self, n)]
+        names = [n for n in FAULT_NAMES if getattr(self, n)]
         return ",".join(names) or "none"
 
 
@@ -32,6 +35,11 @@ class Machine:
     temp_field = "engine_temp"
     temp_nominal = 85.0
     ch4_baseline = 0.15
+    specific_fields: dict[str, str]  # pola specific() -> typ w rekordzie binarnym (kod struct)
+
+    @classmethod
+    def record_fields(cls) -> dict[str, str]:
+        return {cls.temp_field: "f", "ch4_pct": "f", **cls.specific_fields}
 
     def __init__(self, rng: random.Random):
         self.rng = rng
@@ -65,6 +73,7 @@ class HaulTruck(Machine):
 
     machine_type, prefix, interval_s = "haul_truck", "TRK", 1.0
     random_loss_p = 0.004
+    specific_fields = {"speed_kmh": "f", "payload_t": "f", "fuel_pct": "f"}
 
     def __init__(self, rng):
         super().__init__(rng)
@@ -98,6 +107,7 @@ class LhdLoader(Machine):
     machine_type, prefix, interval_s = "lhd_loader", "LHD", 1.0
     random_loss_p = 0.002
     temp_nominal = 82.0
+    specific_fields = {"speed_kmh": "f", "bucket_load_t": "f", "hydraulic_bar": "f", "cycles": "I"}
 
     def __init__(self, rng):
         super().__init__(rng)
@@ -134,6 +144,7 @@ class DrillRig(Machine):
     machine_type, prefix, interval_s = "drill_rig", "DRL", 2.0
     random_loss_p = 0.002
     temp_field, temp_nominal = "motor_temp", 70.0
+    specific_fields = {"rpm": "H", "feed_bar": "f", "vibration_mm_s": "f", "hole_depth_m": "f"}
 
     hole_depth = 5.0
     tram_s = 45.0  # czas przejazdu do kolejnego otworu
@@ -175,6 +186,7 @@ class VentFan(Machine):
     random_loss_p = 0.0
     temp_field, temp_nominal = "motor_temp", 65.0
     ch4_baseline = 0.3
+    specific_fields = {"airflow_m3_s": "f", "motor_current_a": "f", "vibration_mm_s": "f"}
 
     def __init__(self, rng):
         super().__init__(rng)
